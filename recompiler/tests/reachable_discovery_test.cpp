@@ -187,10 +187,43 @@ void check_scheduled_switch() {
     }
 }
 
+// Psy-Q guard idiom (Ms. Pac-Man Maze Madness MAIN.EXE, 11 sites): the branch
+// skips a tail jump by landing in its delay slot, then falls through.
+//   bne t0,zero,1f ; nop ; j err ; 1: sll v1,v1,3 ; addu v1,v1,s6 ; jr ra
+// The j marks its delay slot covered first; the branch target must still be
+// walked, or everything after it is truncated out of the function.
+void check_branch_into_jump_delay_slot() {
+    auto image = make_exe_buffer(0x1000);
+    const size_t text = 2048;
+    put32(image, text + 0x00, 0x15000002u); // bne t0,zero,+0x0C
+    put32(image, text + 0x04, 0x00000000u);
+    put32(image, text + 0x08, 0x08000000u | (((kLoad + 0x100) >> 2) & 0x03FFFFFFu));
+    put32(image, text + 0x0C, 0x000318C0u); // sll v1,v1,3 (delay + target)
+    put32(image, text + 0x10, 0x00761821u); // addu v1,v1,s6
+    put32(image, text + 0x14, 0x03E00008u);
+    put32(image, text + 0x18, 0x00000000u);
+    put32(image, text + 0x100, 0x27BDFFF0u);
+    put32(image, text + 0x104, 0x03E00008u);
+    put32(image, text + 0x108, 0x27BD0010u);
+
+    auto exe = parse(image);
+    PSXRecomp::FunctionAnalyzer analyzer(exe);
+    auto result = analyzer.analyze_exact_entries({kLoad});
+    CHECK(result.exact_reachable_pcs.count(kLoad + 0x10) &&
+          result.exact_reachable_pcs.count(kLoad + 0x14),
+          "branch into a jump's delay slot falls through past it");
+    bool bounded = false;
+    for (const auto& function : result.functions)
+        if (function.start_addr == kLoad)
+            bounded = function.end_addr >= kLoad + 0x1C;
+    CHECK(bounded, "function extent includes code after the delay-slot target");
+}
+
 } // namespace
 
 int main() {
     check_scheduled_switch();
+    check_branch_into_jump_delay_slot();
     auto image = make_exe_buffer(0x2000);
     const size_t text = 2048;
 

@@ -1485,6 +1485,11 @@ FunctionAnalysisResult FunctionAnalyzer::analyze_exact_entries(
         std::queue<uint32_t> work;
         work.push(entry);
         const int entry_producer = producer_for(entry);
+        /* PCs processed as instruction leaders. wr.visited also holds delay
+         * slots, which are covered without walking past them; a branch whose
+         * target IS a delay slot (Psy-Q `bnez t0,1f; j err; 1: <delay>`) must
+         * still execute it and fall through, so it cannot gate on visited. */
+        std::set<uint32_t> walked;
 
         auto in_function = [&](uint32_t addr) {
             return in_exe(addr) && addr >= entry && addr < hard_cap &&
@@ -1497,11 +1502,12 @@ FunctionAnalysisResult FunctionAnalyzer::analyze_exact_entries(
             uint32_t pc = work.front();
             work.pop();
 
-            if (wr.visited.count(pc) || !in_function(pc)) continue;
+            if (walked.count(pc) || !in_function(pc)) continue;
             auto word_opt = exe_.read_word(pc);
             if (!word_opt.has_value()) continue;
 
             uint32_t instr = *word_opt;
+            walked.insert(pc);
             wr.visited.insert(pc);
             ExactCf cf = exact_classify_cf(pc, instr);
             uint32_t delay = pc + 4u;
@@ -2185,6 +2191,7 @@ FunctionAnalysisResult FunctionAnalyzer::analyze() {
     struct ExtentP3 { uint32_t terminus; bool clean_code; bool hit_invalid; bool resolved_jt; bool unresolved_indirect; };
     auto compute_extent_p3 = [&](uint32_t entry, uint32_t hard_cap) -> ExtentP3 {
         std::set<uint32_t> visited;
+        std::set<uint32_t> walked;  // leaders only; see walk() on delay-slot targets
         std::queue<uint32_t> work;
         work.push(entry);
         bool hit_invalid = false, reached_exit = false, unresolved_indirect = false;
@@ -2192,10 +2199,11 @@ FunctionAnalysisResult FunctionAnalyzer::analyze() {
         auto in_fn = [&](uint32_t a) { return in_exe_p3(a) && a >= entry && a < hard_cap; };
         while (!work.empty()) {
             uint32_t pc = work.front(); work.pop();
-            if (visited.count(pc) || !in_fn(pc)) continue;
+            if (walked.count(pc) || !in_fn(pc)) continue;
             auto word_opt = exe_.read_word(pc);
             if (!word_opt.has_value()) continue;
             uint32_t instr = *word_opt;
+            walked.insert(pc);
             visited.insert(pc);
             if (!valid_primary_p3(instr)) { hit_invalid = true; continue; }
             ExactCf cf = exact_classify_cf(pc, instr);
