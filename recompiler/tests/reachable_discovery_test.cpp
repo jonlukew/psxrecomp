@@ -187,8 +187,8 @@ void check_scheduled_switch() {
     }
 }
 
-// Psy-Q guard idiom (Ms. Pac-Man Maze Madness MAIN.EXE, 11 sites): the branch
-// skips a tail jump by landing in its delay slot, then falls through.
+// Psy-Q guard idiom: a conditional branch skips an error tail jump by landing
+// in that jump's delay slot, then falls through.
 //   bne t0,zero,1f ; nop ; j err ; 1: sll v1,v1,3 ; addu v1,v1,s6 ; jr ra
 // The j marks its delay slot covered first; the branch target must still be
 // walked, or everything after it is truncated out of the function.
