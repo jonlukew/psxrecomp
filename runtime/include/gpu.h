@@ -374,6 +374,11 @@ void psx_ws_note_gte_project(int nverts);
  * heuristic gameplay classification for native-wide presentation. */
 void gpu_ws_set_gameplay_state_gate(uint32_t addr,
                                     const uint32_t *values, int nvalues);
+/* Optional inverse gate: while the guest word matches a listed value the frame
+ * is never gameplay (4:3 pillarbox), overriding every other classifier. It can
+ * only force 4:3. For 3D menus built only for the original 4:3 camera. */
+void gpu_ws_set_non_gameplay_state_gate(uint32_t addr,
+                                        const uint32_t *values, int nvalues);
 /* Native-wide HUD corner re-anchoring ([widescreen] nw_hud_corners): push
  * outer-third screen-space HUD primitives out to the true wide-frame corners
  * (they otherwise sit inset by the reveal). Runtime-only. Off by default. */

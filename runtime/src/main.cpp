@@ -13136,6 +13136,10 @@ int main(int argc, char** argv) {
                 gc.ws_gameplay_state_addr,
                 gc.ws_gameplay_state_values.data(),
                 (int)gc.ws_gameplay_state_values.size());
+            gpu_ws_set_non_gameplay_state_gate(
+                gc.ws_non_gameplay_state_addr,
+                gc.ws_non_gameplay_state_values.data(),
+                (int)gc.ws_non_gameplay_state_values.size());
             /* Keep titles with known native-wide regressions on the original
              * projection-squash + stretched-present widescreen path. */
             g_ws_native_wide = gc.ws_native_wide ? 1 : 0;

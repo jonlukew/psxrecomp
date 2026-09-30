@@ -1071,6 +1071,14 @@ struct GameConfig {
     uint32_t ws_gameplay_state_addr = 0;
     std::vector<uint32_t> ws_gameplay_state_values;
 
+    // Optional inverse gate for titles whose 3D menus are built only for the
+    // 4:3 camera. While the guest word matches one listed value the frame is
+    // never gameplay (4:3 pillarbox); otherwise classification is unchanged.
+    // It can only force 4:3, never widescreen. Runtime-only; both fields must
+    // be supplied together.
+    uint32_t ws_non_gameplay_state_addr = 0;
+    std::vector<uint32_t> ws_non_gameplay_state_values;
+
     // [widescreen] native_wide — select the newer wide render-target path.
     // Defaults on for compatibility. Titles can keep the original GTE-squash
     // + stretched-present path when native-wide is not regression-free.
