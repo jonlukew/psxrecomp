@@ -50,6 +50,21 @@ int main(void) {
     world = 1;
     psx_mod_set_world_scene_predicate(NULL);
     assert(native_43() == 1); /* unregistration restores original policy */
-    puts("PASS opt-in scope, world scene, defer, FMV veto, retained frame and unregister");
+
+    gpu_ws_set_gameplay_state_gate(0, NULL, 0);
+    psx_mod_set_world_scene_predicate(world_scene);
+    world = 1;
+    state_word = 7;
+    assert(native_43() == 0); /* wide before the inverse gate exists */
+    uint32_t menu = 7;
+    gpu_ws_set_non_gameplay_state_gate(0x80002000u, &menu, 1);
+    assert(native_43() == 1); /* listed state forces 4:3 over the world scene */
+    state_word = 8;
+    assert(native_43() == 0); /* any other state keeps the original policy */
+    gpu_ws_set_non_gameplay_state_gate(0, NULL, 0);
+    state_word = 7;
+    assert(native_43() == 0); /* clearing the gate restores it */
+    psx_mod_set_world_scene_predicate(NULL);
+    puts("PASS opt-in scope, world scene, defer, FMV veto, retained frame, unregister and non-gameplay gate");
     return 0;
 }

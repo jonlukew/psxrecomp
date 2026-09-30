@@ -1489,6 +1489,8 @@ GameConfig load_game_config(const fs::path& config_path_in) {
     bool ws_precise_nclip = false;
     uint32_t ws_gameplay_state_addr = 0;
     std::vector<uint32_t> ws_gameplay_state_values;
+    uint32_t ws_non_gameplay_state_addr = 0;
+    std::vector<uint32_t> ws_non_gameplay_state_values;
     bool ws_native_wide = true;
     bool ws_nw_hud_corners = false;
     uint32_t ws_nw_left_hud_packet_lo = 0;
@@ -1655,6 +1657,27 @@ GameConfig load_game_config(const fs::path& config_path_in) {
             if (ws_gameplay_state_values.empty())
                 throw std::runtime_error(fmt::format(
                     "{}: [widescreen] gameplay_state_values must not be empty",
+                    config_path.string()));
+        }
+        const bool has_non_gameplay_state_addr = ws.contains("non_gameplay_state_addr");
+        const bool has_non_gameplay_state_values = ws.contains("non_gameplay_state_values");
+        if (has_non_gameplay_state_addr != has_non_gameplay_state_values)
+            throw std::runtime_error(fmt::format(
+                "{}: [widescreen] non_gameplay_state_addr and "
+                "non_gameplay_state_values must be set together",
+                config_path.string()));
+        if (has_non_gameplay_state_addr) {
+            ws_non_gameplay_state_addr = parse_hex(
+                toml::find<std::string>(ws, "non_gameplay_state_addr"),
+                "widescreen.non_gameplay_state_addr");
+            const auto& arr = toml::find<std::vector<std::string>>(
+                ws, "non_gameplay_state_values");
+            for (const auto& value : arr)
+                ws_non_gameplay_state_values.push_back(parse_hex(
+                    value, "widescreen.non_gameplay_state_values"));
+            if (ws_non_gameplay_state_values.empty())
+                throw std::runtime_error(fmt::format(
+                    "{}: [widescreen] non_gameplay_state_values must not be empty",
                     config_path.string()));
         }
         if (ws.contains("native_wide"))
@@ -2256,6 +2279,8 @@ GameConfig load_game_config(const fs::path& config_path_in) {
         /*ws_precise_nclip*/      ws_precise_nclip,
         /*ws_gameplay_state_addr*/ ws_gameplay_state_addr,
         /*ws_gameplay_state_values*/ ws_gameplay_state_values,
+        /*ws_non_gameplay_state_addr*/ ws_non_gameplay_state_addr,
+        /*ws_non_gameplay_state_values*/ ws_non_gameplay_state_values,
         /*ws_native_wide*/        ws_native_wide,
         /*ws_nw_hud_corners*/     ws_nw_hud_corners,
         /*ws_nw_left_hud_packet_lo*/ ws_nw_left_hud_packet_lo,

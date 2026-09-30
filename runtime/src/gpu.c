@@ -243,6 +243,9 @@ static int ws_precise_nclip_cfg = 0;
 static uint32_t ws_gameplay_state_addr = 0;
 static uint32_t ws_gameplay_state_values[WS_GAMEPLAY_STATE_VALUES_MAX];
 static int ws_gameplay_state_value_count = 0;
+static uint32_t ws_non_gameplay_state_addr = 0;
+static uint32_t ws_non_gameplay_state_values[WS_GAMEPLAY_STATE_VALUES_MAX];
+static int ws_non_gameplay_state_value_count = 0;
 /* Any frame that projects a handful of vertices is "3D" (a low threshold so a
  * sparse close-up cutscene frame still counts — the flicker was frames dipping
  * below a high 16-vert bar and pillarboxing for a frame or two). */
@@ -278,6 +281,26 @@ static int ws_gameplay_state_matches(void) {
     uint32_t state = psx_read_word(ws_gameplay_state_addr);
     for (int i = 0; i < ws_gameplay_state_value_count; i++)
         if (state == ws_gameplay_state_values[i]) return 1;
+    return 0;
+}
+
+void gpu_ws_set_non_gameplay_state_gate(uint32_t addr,
+                                        const uint32_t *values, int nvalues) {
+    if (nvalues < 0) nvalues = 0;
+    if (nvalues > WS_GAMEPLAY_STATE_VALUES_MAX)
+        nvalues = WS_GAMEPLAY_STATE_VALUES_MAX;
+    ws_non_gameplay_state_addr = addr;
+    ws_non_gameplay_state_value_count = nvalues;
+    for (int i = 0; i < nvalues; i++)
+        ws_non_gameplay_state_values[i] = values[i];
+}
+
+static int ws_non_gameplay_state_matches(void) {
+    if (!ws_non_gameplay_state_addr || ws_non_gameplay_state_value_count == 0)
+        return 0;
+    uint32_t state = psx_read_word(ws_non_gameplay_state_addr);
+    for (int i = 0; i < ws_non_gameplay_state_value_count; i++)
+        if (state == ws_non_gameplay_state_values[i]) return 1;
     return 0;
 }
 
@@ -353,6 +376,7 @@ static int ws_mod_world_scene(void) {
     return ws_mode == 2 && s_ws_world_scene_predicate && s_ws_world_scene_predicate();
 }
 static int ws_game_mode(void) {
+    if (ws_non_gameplay_state_matches()) return 0;
     if (ws_mod_world_scene()) return 1;
     int state_match = ws_gameplay_state_matches();
     if (state_match >= 0) return state_match;

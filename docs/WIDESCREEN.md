@@ -98,6 +98,28 @@ present aspect. BIOS, FMV, menus and other title-classified 2D frames keep
 their 4:3 pillarbox policy. TombaRecomp's and RidgeRacerType4Recomp's
 `*.enhancement.widescreen` packages are worked examples.
 
+### Game-state gates for gameplay classification
+
+A 3D menu can project enough geometry to be classified as gameplay, and a
+menu built only for the 4:3 camera then shows empty space past its edges.
+Two optional, runtime-only gates read one guest word (both keys of a pair must
+be set together; up to 16 values):
+
+```toml
+[widescreen]
+# Allowlist: native-wide ONLY while the word equals a listed value; replaces
+# the heuristic classifiers entirely.
+gameplay_state_addr = "0x800A1234"
+gameplay_state_values = ["0x3", "0x4"]
+# Denylist: while the word equals a listed value the frame is never gameplay
+# (4:3 pillarbox); any other value leaves classification unchanged. It can
+# only force 4:3, so it is safe with sparse or partially known state spaces.
+non_gameplay_state_addr = "0x800FCBE8"
+non_gameplay_state_values = ["0x1"]
+```
+
+The denylist is checked first, ahead of mod world-scene predicates.
+
 The native-wide draw-area early-out correction was independently identified
 and contributed by **OpokXeno** in
 [PR #73](https://github.com/mstan/psxrecomp/pull/73). The landed variant keeps
